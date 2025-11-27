@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { UploadCard } from "@/components/upload-card";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,16 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, FileText, Heart, Car, Mic, Check } from "lucide-react";
+import { Camera, FileText, Heart, Car, Mic } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLocation } from "wouter";
 
 export default function Upload() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const [isRecording, setIsRecording] = useState(false);
+  const [noteCategory, setNoteCategory] = useState("other");
+  const noteFormRef = useRef<HTMLFormElement>(null);
 
   const createEntry = useMutation({
     mutationFn: (data: any) => apiRequest("/api/entries", { method: "POST", body: JSON.stringify(data) }),
@@ -49,17 +49,17 @@ export default function Upload() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const title = formData.get("quickNote") as string;
-    const category = formData.get("category") as string;
     if (!title.trim()) {
       toast({ title: "Please enter a note", variant: "destructive" });
       return;
     }
     createEntry.mutate({
       title,
-      category: category || "other",
+      category: noteCategory,
       description: title,
     });
     e.currentTarget.reset();
+    setNoteCategory("other");
   };
 
   const handleLifeIncident = (e: React.FormEvent<HTMLFormElement>) => {
@@ -144,7 +144,7 @@ export default function Upload() {
                   data-testid="textarea-quick-note"
                 />
                 <div className="flex items-center gap-2">
-                  <Select name="category" defaultValue="other">
+                  <Select value={noteCategory} onValueChange={setNoteCategory}>
                     <SelectTrigger className="w-40" data-testid="select-note-category">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>

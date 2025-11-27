@@ -46,6 +46,7 @@ export const entries = pgTable("entries", {
 
 export const insertEntrySchema = createInsertSchema(entries).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   timestamp: z.coerce.date().optional(),
@@ -71,6 +72,7 @@ export const carData = pgTable("car_data", {
 
 export const insertCarDataSchema = createInsertSchema(carData).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   timestamp: z.coerce.date().optional(),
@@ -94,6 +96,7 @@ export const insights = pgTable("insights", {
 
 export const insertInsightSchema = createInsertSchema(insights).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
@@ -115,6 +118,7 @@ export const medicalContacts = pgTable("medical_contacts", {
 
 export const insertMedicalContactSchema = createInsertSchema(medicalContacts).omit({
   id: true,
+  userId: true,
   createdAt: true,
 });
 
@@ -135,6 +139,7 @@ export const medicalReferrals = pgTable("medical_referrals", {
 
 export const insertMedicalReferralSchema = createInsertSchema(medicalReferrals).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   dateSent: z.coerce.date().optional(),
@@ -159,6 +164,7 @@ export const followUpTasks = pgTable("follow_up_tasks", {
 
 export const insertFollowUpTaskSchema = createInsertSchema(followUpTasks).omit({
   id: true,
+  userId: true,
   createdAt: true,
 }).extend({
   triggerDate: z.coerce.date(),
@@ -190,6 +196,7 @@ export const ideas = pgTable("ideas", {
 
 export const insertIdeaSchema = createInsertSchema(ideas).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
   viewCount: true,
