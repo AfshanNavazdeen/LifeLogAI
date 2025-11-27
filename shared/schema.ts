@@ -99,3 +99,105 @@ export const insertInsightSchema = createInsertSchema(insights).omit({
 
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type Insight = typeof insights.$inferSelect;
+
+// Medical Contacts
+export const medicalContacts = pgTable("medical_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role"),
+  clinic: text("clinic"),
+  phone: text("phone"),
+  email: text("email"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMedicalContactSchema = createInsertSchema(medicalContacts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMedicalContact = z.infer<typeof insertMedicalContactSchema>;
+export type MedicalContact = typeof medicalContacts.$inferSelect;
+
+// Medical Referrals
+export const medicalReferrals = pgTable("medical_referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  dateSent: timestamp("date_sent"),
+  senderContactId: varchar("sender_contact_id").references(() => medicalContacts.id),
+  status: text("status").notNull().default("pending"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMedicalReferralSchema = createInsertSchema(medicalReferrals).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  dateSent: z.coerce.date().optional(),
+});
+
+export type InsertMedicalReferral = z.infer<typeof insertMedicalReferralSchema>;
+export type MedicalReferral = typeof medicalReferrals.$inferSelect;
+
+// Follow-Up Tasks
+export const followUpTasks = pgTable("follow_up_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  referralId: varchar("referral_id").references(() => medicalReferrals.id, { onDelete: "cascade" }),
+  triggerDate: timestamp("trigger_date").notNull(),
+  contactId: varchar("contact_id").references(() => medicalContacts.id),
+  purpose: text("purpose").notNull(),
+  status: text("status").notNull().default("pending"),
+  reminderSent: timestamp("reminder_sent"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertFollowUpTaskSchema = createInsertSchema(followUpTasks).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  triggerDate: z.coerce.date(),
+  reminderSent: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export type InsertFollowUpTask = z.infer<typeof insertFollowUpTaskSchema>;
+export type FollowUpTask = typeof followUpTasks.$inferSelect;
+
+// Ideas
+export const ideas = pgTable("ideas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  tags: text("tags").array().default(sql`ARRAY[]::text[]`),
+  context: jsonb("context").default(sql`'{}'::jsonb`),
+  status: text("status").notNull().default("concept"),
+  priority: integer("priority").default(0),
+  linkedEntryId: varchar("linked_entry_id").references(() => entries.id, { onDelete: "set null" }),
+  notes: text("notes"),
+  viewCount: integer("view_count").default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertIdeaSchema = createInsertSchema(ideas).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  viewCount: true,
+  lastViewedAt: true,
+}).extend({
+  tags: z.array(z.string()).optional(),
+  context: z.record(z.any()).optional(),
+});
+
+export type InsertIdea = z.infer<typeof insertIdeaSchema>;
+export type Idea = typeof ideas.$inferSelect;

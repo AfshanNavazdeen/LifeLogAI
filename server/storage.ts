@@ -1,6 +1,6 @@
-import { type User, type UpsertUser, type Entry, type InsertEntry, type CarData, type InsertCarData, type Insight, type InsertInsight } from "@shared/schema";
+import { type User, type UpsertUser, type Entry, type InsertEntry, type CarData, type InsertCarData, type Insight, type InsertInsight, type MedicalContact, type InsertMedicalContact, type MedicalReferral, type InsertMedicalReferral, type FollowUpTask, type InsertFollowUpTask, type Idea, type InsertIdea } from "@shared/schema";
 import { db } from "./db";
-import { users, entries, carData, insights } from "@shared/schema";
+import { users, entries, carData, insights, medicalContacts, medicalReferrals, followUpTasks, ideas } from "@shared/schema";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -19,6 +19,23 @@ export interface IStorage {
   createInsight(insight: InsertInsight): Promise<Insight>;
   getInsights(userId: string): Promise<Insight[]>;
   deleteInsight(id: string): Promise<boolean>;
+  
+  createMedicalContact(contact: InsertMedicalContact): Promise<MedicalContact>;
+  getMedicalContacts(userId: string): Promise<MedicalContact[]>;
+  updateMedicalContact(id: string, contact: Partial<InsertMedicalContact>): Promise<MedicalContact | undefined>;
+  
+  createMedicalReferral(referral: InsertMedicalReferral): Promise<MedicalReferral>;
+  getMedicalReferrals(userId: string): Promise<MedicalReferral[]>;
+  updateMedicalReferral(id: string, referral: Partial<InsertMedicalReferral>): Promise<MedicalReferral | undefined>;
+  
+  createFollowUpTask(task: InsertFollowUpTask): Promise<FollowUpTask>;
+  getFollowUpTasks(userId: string, daysAhead?: number): Promise<FollowUpTask[]>;
+  updateFollowUpTask(id: string, task: Partial<InsertFollowUpTask>): Promise<FollowUpTask | undefined>;
+  
+  createIdea(idea: InsertIdea): Promise<Idea>;
+  getIdeas(userId: string, filters?: { category?: string; status?: string }): Promise<Idea[]>;
+  updateIdea(id: string, idea: Partial<InsertIdea>): Promise<Idea | undefined>;
+  getRelatedIdeas(userId: string, entryId: string): Promise<Idea[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -116,6 +133,83 @@ export class DbStorage implements IStorage {
   async deleteInsight(id: string): Promise<boolean> {
     const result = await db.delete(insights).where(eq(insights.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Medical Contacts
+  async createMedicalContact(contact: InsertMedicalContact): Promise<MedicalContact> {
+    const result = await db.insert(medicalContacts).values(contact).returning();
+    return result[0];
+  }
+
+  async getMedicalContacts(userId: string): Promise<MedicalContact[]> {
+    return db.select().from(medicalContacts).where(eq(medicalContacts.userId, userId)).orderBy(desc(medicalContacts.createdAt));
+  }
+
+  async updateMedicalContact(id: string, contact: Partial<InsertMedicalContact>): Promise<MedicalContact | undefined> {
+    const result = await db.update(medicalContacts).set(contact).where(eq(medicalContacts.id, id)).returning();
+    return result[0];
+  }
+
+  // Medical Referrals
+  async createMedicalReferral(referral: InsertMedicalReferral): Promise<MedicalReferral> {
+    const processedReferral = {
+      ...referral,
+      dateSent: referral.dateSent || new Date(),
+    };
+    const result = await db.insert(medicalReferrals).values(processedReferral).returning();
+    return result[0];
+  }
+
+  async getMedicalReferrals(userId: string): Promise<MedicalReferral[]> {
+    return db.select().from(medicalReferrals).where(eq(medicalReferrals.userId, userId)).orderBy(desc(medicalReferrals.createdAt));
+  }
+
+  async updateMedicalReferral(id: string, referral: Partial<InsertMedicalReferral>): Promise<MedicalReferral | undefined> {
+    const result = await db.update(medicalReferrals).set(referral).where(eq(medicalReferrals.id, id)).returning();
+    return result[0];
+  }
+
+  // Follow-Up Tasks
+  async createFollowUpTask(task: InsertFollowUpTask): Promise<FollowUpTask> {
+    const result = await db.insert(followUpTasks).values(task).returning();
+    return result[0];
+  }
+
+  async getFollowUpTasks(userId: string, daysAhead?: number): Promise<FollowUpTask[]> {
+    const conditions = [eq(followUpTasks.userId, userId)];
+    if (daysAhead) {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + daysAhead);
+      conditions.push(lte(followUpTasks.triggerDate, futureDate));
+    }
+    return db.select().from(followUpTasks).where(and(...conditions)).orderBy(followUpTasks.triggerDate);
+  }
+
+  async updateFollowUpTask(id: string, task: Partial<InsertFollowUpTask>): Promise<FollowUpTask | undefined> {
+    const result = await db.update(followUpTasks).set(task).where(eq(followUpTasks.id, id)).returning();
+    return result[0];
+  }
+
+  // Ideas
+  async createIdea(idea: InsertIdea): Promise<Idea> {
+    const result = await db.insert(ideas).values(idea).returning();
+    return result[0];
+  }
+
+  async getIdeas(userId: string, filters?: { category?: string; status?: string }): Promise<Idea[]> {
+    const conditions = [eq(ideas.userId, userId)];
+    if (filters?.category) conditions.push(eq(ideas.category, filters.category));
+    if (filters?.status) conditions.push(eq(ideas.status, filters.status));
+    return db.select().from(ideas).where(and(...conditions)).orderBy(desc(ideas.createdAt));
+  }
+
+  async updateIdea(id: string, idea: Partial<InsertIdea>): Promise<Idea | undefined> {
+    const result = await db.update(ideas).set({ ...idea, updatedAt: new Date() }).where(eq(ideas.id, id)).returning();
+    return result[0];
+  }
+
+  async getRelatedIdeas(userId: string, entryId: string): Promise<Idea[]> {
+    return db.select().from(ideas).where(and(eq(ideas.userId, userId), eq(ideas.linkedEntryId, entryId))).orderBy(desc(ideas.createdAt));
   }
 }
 

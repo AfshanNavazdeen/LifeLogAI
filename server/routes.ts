@@ -5,6 +5,7 @@ import { insertEntrySchema, insertCarDataSchema, insertInsightSchema } from "@sh
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import OpenAI from "openai";
 import { z } from "zod";
+import { insertMedicalContactSchema, insertMedicalReferralSchema, insertFollowUpTaskSchema, insertIdeaSchema } from "@shared/schema";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -276,6 +277,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid input" });
       }
       res.status(500).json({ error: "Failed to process query" });
+    }
+  });
+
+  // Medical Contacts API
+  app.post("/api/medical/contacts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contactData = insertMedicalContactSchema.parse(req.body);
+      const contact = await storage.createMedicalContact({ ...contactData, userId });
+      res.json(contact);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/contacts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contacts = await storage.getMedicalContacts(userId);
+      res.json(contacts);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Medical Referrals API
+  app.post("/api/medical/referrals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const referralData = insertMedicalReferralSchema.parse(req.body);
+      const referral = await storage.createMedicalReferral({ ...referralData, userId });
+      res.json(referral);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/referrals", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const referrals = await storage.getMedicalReferrals(userId);
+      res.json(referrals);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/referrals/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const updateData = insertMedicalReferralSchema.partial().parse(req.body);
+      const referral = await storage.updateMedicalReferral(req.params.id, updateData);
+      res.json(referral);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Follow-Up Tasks API
+  app.post("/api/medical/follow-ups", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const taskData = insertFollowUpTaskSchema.parse(req.body);
+      const task = await storage.createFollowUpTask({ ...taskData, userId });
+      res.json(task);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/follow-ups", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const daysAhead = req.query.daysAhead ? parseInt(req.query.daysAhead) : 30;
+      const tasks = await storage.getFollowUpTasks(userId, daysAhead);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/follow-ups/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const updateData = insertFollowUpTaskSchema.partial().parse(req.body);
+      const task = await storage.updateFollowUpTask(req.params.id, updateData);
+      res.json(task);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Ideas API
+  app.post("/api/ideas", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const ideaData = insertIdeaSchema.parse(req.body);
+      const idea = await storage.createIdea({ ...ideaData, userId });
+      res.json(idea);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ideas", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { category, status } = req.query;
+      const ideas = await storage.getIdeas(userId, { category: category as string, status: status as string });
+      res.json(ideas);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/ideas/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const updateData = insertIdeaSchema.partial().parse(req.body);
+      const idea = await storage.updateIdea(req.params.id, updateData);
+      res.json(idea);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
     }
   });
 
