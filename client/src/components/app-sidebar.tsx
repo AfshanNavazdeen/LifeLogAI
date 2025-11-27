@@ -16,12 +16,13 @@ import {
   Upload,
   Sparkles,
   Car,
-  User,
   Layers,
+  Stethoscope,
+  Lightbulb,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
-const menuItems = [
+const mainMenuItems = [
   {
     title: "Dashboard",
     url: "/",
@@ -42,10 +43,23 @@ const menuItems = [
     url: "/insights",
     icon: Sparkles,
   },
+];
+
+const trackingItems = [
   {
     title: "Car Data",
     url: "/car",
     icon: Car,
+  },
+  {
+    title: "Medical",
+    url: "/medical",
+    icon: Stethoscope,
+  },
+  {
+    title: "Ideas",
+    url: "/ideas",
+    icon: Lightbulb,
   },
 ];
 
@@ -61,21 +75,42 @@ export function AppSidebar() {
           </div>
           <div>
             <h2 className="text-lg font-bold">LifeLog AI</h2>
-            <p className="text-xs text-muted-foreground">Your Data</p>
+            <p className="text-xs text-muted-foreground">Personal Dashboard</p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    data-testid={`link-${item.title.toLowerCase()}`}
+                    data-testid={`link-${item.title.toLowerCase().replace(" ", "-")}`}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Tracking</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {trackingItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url}
+                    data-testid={`link-${item.title.toLowerCase().replace(" ", "-")}`}
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
@@ -89,16 +124,9 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/profile">
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <p className="text-xs text-muted-foreground text-center">
+          AI-powered life management
+        </p>
       </SidebarFooter>
     </Sidebar>
   );
