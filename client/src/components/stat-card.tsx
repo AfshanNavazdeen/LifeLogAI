@@ -1,12 +1,12 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 
-interface StatCardProps {
+export interface StatCardProps {
   icon: LucideIcon;
   label: string;
   value: string;
   change?: string;
-  trend?: "up" | "down";
+  trend?: "up" | "down" | "neutral";
   className?: string;
   gradient?: string;
 }
@@ -35,14 +35,16 @@ export function StatCard({
         </div>
         {change && (
           <div className="flex items-center gap-2">
-            <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-              trend === "up" 
-                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
-                : "bg-red-500/10 text-red-700 dark:text-red-400"
-            }`}>
-              {trend === "up" ? "↑" : "↓"} {change}
-            </div>
-            <span className="text-xs text-muted-foreground">vs last month</span>
+            {trend && trend !== "neutral" && (
+              <div className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                trend === "up" 
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" 
+                  : "bg-red-500/10 text-red-700 dark:text-red-400"
+              }`}>
+                {trend === "up" ? "↑" : "↓"}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">{change}</span>
           </div>
         )}
       </CardContent>

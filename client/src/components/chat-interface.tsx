@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Sparkles } from "lucide-react";
+import { Send, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "./ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Message {
   id: string;
@@ -16,13 +17,39 @@ export function ChatInterface() {
     {
       id: "1",
       role: "assistant",
-      content: "Hi! I'm your LifeLog AI assistant. Ask me anything about your spending, habits, or life events.",
+      content: "Hi! I'm your LifeLog AI assistant. Ask me anything about your spending, habits, car data, or life events.",
     },
   ]);
   const [input, setInput] = useState("");
 
+  const chatMutation = useMutation({
+    mutationFn: async (message: string) => {
+      const response = await apiRequest<{ response: string }>("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      });
+      return response.response;
+    },
+    onSuccess: (response) => {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: response,
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    },
+    onError: () => {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "I'm sorry, I couldn't process your request. Please try again.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    },
+  });
+
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || chatMutation.isPending) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -30,22 +57,9 @@ export function ChatInterface() {
       content: input,
     };
 
-    // Simulate AI response
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: "I analyzed your data. " + (
-        input.toLowerCase().includes("fuel") 
-          ? "You spent £182 on fuel last month, which is 12% higher than your monthly average."
-          : input.toLowerCase().includes("spending")
-          ? "Your total spending this month is £1,847. This is an increase of 8% compared to last month."
-          : "Based on your logged data, I can help you understand patterns and make better decisions."
-      ),
-    };
-
-    setMessages([...messages, userMessage, aiMessage]);
+    setMessages((prev) => [...prev, userMessage]);
+    chatMutation.mutate(input);
     setInput("");
-    console.log("Message sent:", input);
   };
 
   return (
@@ -71,10 +85,24 @@ export function ChatInterface() {
                   AI
                 </Badge>
               )}
-              <p className="text-sm" data-testid={`message-${message.role}`}>{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap" data-testid={`message-${message.role}`}>{message.content}</p>
             </div>
           </div>
         ))}
+        {chatMutation.isPending && (
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
+              <Badge variant="outline" className="mb-2 gap-1">
+                <Sparkles className="h-3 w-3" />
+                AI
+              </Badge>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Thinking...
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="border-t p-4">
         <div className="flex gap-2">
@@ -84,15 +112,21 @@ export function ChatInterface() {
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ask about your data..."
             className="rounded-full"
+            disabled={chatMutation.isPending}
             data-testid="input-chat"
           />
           <Button
             size="icon"
             className="rounded-full shrink-0"
             onClick={handleSend}
+            disabled={chatMutation.isPending}
             data-testid="button-send-message"
           >
-            <Send className="h-5 w-5" />
+            {chatMutation.isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </Button>
         </div>
       </div>

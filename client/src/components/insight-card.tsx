@@ -4,11 +4,11 @@ import { Sparkles, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
-interface InsightCardProps {
+export interface InsightCardProps {
   title: string;
   summary: string;
   details?: string;
-  severity?: "info" | "warning" | "success";
+  severity?: "info" | "warning" | "success" | "error";
 }
 
 export function InsightCard({
@@ -23,6 +23,7 @@ export function InsightCard({
     info: "border-primary/20 bg-primary/5",
     warning: "border-chart-4/20 bg-chart-4/5",
     success: "border-chart-2/20 bg-chart-2/5",
+    error: "border-destructive/20 bg-destructive/5",
   };
 
   return (
