@@ -2,7 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEntrySchema, insertCarDataSchema, insertInsightSchema } from "@shared/schema";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./auth0";
 import OpenAI from "openai";
 import { z } from "zod";
 import { insertMedicalContactSchema, insertMedicalReferralSchema, insertFollowUpTaskSchema, insertIdeaSchema } from "@shared/schema";
@@ -10,20 +10,8 @@ import { insertMedicalContactSchema, insertMedicalReferralSchema, insertFollowUp
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth
+  // Setup Auth0
   await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
   
   // Entries API
   app.post("/api/entries", isAuthenticated, async (req: any, res) => {
