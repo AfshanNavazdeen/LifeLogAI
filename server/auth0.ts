@@ -2,13 +2,34 @@ import { auth, requiresAuth } from "express-openid-connect";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
 
+function getIssuerBaseURL(): string {
+  const issuer = process.env.AUTH0_ISSUER_BASE_URL || "";
+  if (issuer.startsWith("https://")) {
+    return issuer;
+  }
+  return `https://${issuer}`;
+}
+
+function getBaseURL(): string {
+  if (process.env.AUTH0_BASE_URL) {
+    return process.env.AUTH0_BASE_URL;
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+  if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+    return `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+  }
+  return "http://localhost:5000";
+}
+
 const config = {
   authRequired: false,
   auth0Logout: true,
   secret: process.env.SESSION_SECRET || "a-long-random-secret-for-sessions",
-  baseURL: process.env.AUTH0_BASE_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`,
+  baseURL: getBaseURL(),
   clientID: process.env.AUTH0_CLIENT_ID,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
+  issuerBaseURL: getIssuerBaseURL(),
   clientSecret: process.env.AUTH0_CLIENT_SECRET,
   authorizationParams: {
     response_type: "code",

@@ -87,19 +87,26 @@ Preferred communication style: Simple, everyday language.
 ### Authentication & Authorization
 
 **Authentication Strategy:**
-- Replit Auth via OpenID Connect (OIDC)
-- Passport.js strategy for session management
-- Token refresh mechanism for long-lived sessions
+- Auth0 via OpenID Connect (OIDC)
+- express-openid-connect middleware for session management
+- Supports Google, Facebook, Apple, email/password authentication via Auth0
 
 **Session Management:**
-- PostgreSQL-backed session store (connect-pg-simple)
-- 7-day session TTL with HTTP-only secure cookies
+- Auth0-managed sessions with secure cookies
 - Session secret from environment variable
+- Automatic token refresh
 
 **Authorization Pattern:**
 - `isAuthenticated` middleware for protected routes
-- User ID extraction from session claims
+- User ID extraction from Auth0 claims (req.oidc.user.sub)
 - Row-level security through userId foreign keys
+
+**Required Auth0 Configuration:**
+- AUTH0_CLIENT_ID - Application Client ID
+- AUTH0_CLIENT_SECRET - Application Client Secret
+- AUTH0_ISSUER_BASE_URL - Auth0 domain (https://YOUR-TENANT.auth0.com)
+- Callback URL: https://YOUR-APP-URL/api/callback
+- Logout URL: https://YOUR-APP-URL
 
 ### AI Integration
 
