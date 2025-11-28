@@ -3,36 +3,38 @@ import { db } from "./db";
 import { users, entries, carData, insights, medicalContacts, medicalReferrals, followUpTasks, ideas } from "@shared/schema";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 
+type WithUserId<T> = T & { userId: string };
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
-  createEntry(entry: InsertEntry): Promise<Entry>;
+  createEntry(entry: WithUserId<InsertEntry>): Promise<Entry>;
   getEntries(userId: string, filters?: { category?: string; startDate?: Date; endDate?: Date }): Promise<Entry[]>;
   getEntry(id: string): Promise<Entry | undefined>;
   updateEntry(id: string, entry: Partial<InsertEntry>): Promise<Entry | undefined>;
   deleteEntry(id: string): Promise<boolean>;
   
-  createCarData(data: InsertCarData): Promise<CarData>;
+  createCarData(data: WithUserId<InsertCarData>): Promise<CarData>;
   getCarData(userId: string): Promise<CarData[]>;
   
-  createInsight(insight: InsertInsight): Promise<Insight>;
+  createInsight(insight: WithUserId<InsertInsight>): Promise<Insight>;
   getInsights(userId: string): Promise<Insight[]>;
   deleteInsight(id: string): Promise<boolean>;
   
-  createMedicalContact(contact: InsertMedicalContact): Promise<MedicalContact>;
+  createMedicalContact(contact: WithUserId<InsertMedicalContact>): Promise<MedicalContact>;
   getMedicalContacts(userId: string): Promise<MedicalContact[]>;
   updateMedicalContact(id: string, contact: Partial<InsertMedicalContact>): Promise<MedicalContact | undefined>;
   
-  createMedicalReferral(referral: InsertMedicalReferral): Promise<MedicalReferral>;
+  createMedicalReferral(referral: WithUserId<InsertMedicalReferral>): Promise<MedicalReferral>;
   getMedicalReferrals(userId: string): Promise<MedicalReferral[]>;
   updateMedicalReferral(id: string, referral: Partial<InsertMedicalReferral>): Promise<MedicalReferral | undefined>;
   
-  createFollowUpTask(task: InsertFollowUpTask): Promise<FollowUpTask>;
+  createFollowUpTask(task: WithUserId<InsertFollowUpTask>): Promise<FollowUpTask>;
   getFollowUpTasks(userId: string, daysAhead?: number): Promise<FollowUpTask[]>;
   updateFollowUpTask(id: string, task: Partial<InsertFollowUpTask>): Promise<FollowUpTask | undefined>;
   
-  createIdea(idea: InsertIdea): Promise<Idea>;
+  createIdea(idea: WithUserId<InsertIdea>): Promise<Idea>;
   getIdeas(userId: string, filters?: { category?: string; status?: string }): Promise<Idea[]>;
   updateIdea(id: string, idea: Partial<InsertIdea>): Promise<Idea | undefined>;
   getRelatedIdeas(userId: string, entryId: string): Promise<Idea[]>;
@@ -59,7 +61,7 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async createEntry(entry: InsertEntry): Promise<Entry> {
+  async createEntry(entry: WithUserId<InsertEntry>): Promise<Entry> {
     const processedEntry = {
       ...entry,
       amount: entry.amount !== undefined && entry.amount !== null ? String(entry.amount) : undefined,
@@ -107,7 +109,7 @@ export class DbStorage implements IStorage {
     return result.length > 0;
   }
 
-  async createCarData(data: InsertCarData): Promise<CarData> {
+  async createCarData(data: WithUserId<InsertCarData>): Promise<CarData> {
     const processedData = {
       ...data,
       fuelAmount: data.fuelAmount !== undefined && data.fuelAmount !== null ? String(data.fuelAmount) : undefined,
@@ -121,7 +123,7 @@ export class DbStorage implements IStorage {
     return db.select().from(carData).where(eq(carData.userId, userId)).orderBy(desc(carData.timestamp));
   }
 
-  async createInsight(insight: InsertInsight): Promise<Insight> {
+  async createInsight(insight: WithUserId<InsertInsight>): Promise<Insight> {
     const result = await db.insert(insights).values(insight).returning();
     return result[0];
   }
@@ -136,7 +138,7 @@ export class DbStorage implements IStorage {
   }
 
   // Medical Contacts
-  async createMedicalContact(contact: InsertMedicalContact): Promise<MedicalContact> {
+  async createMedicalContact(contact: WithUserId<InsertMedicalContact>): Promise<MedicalContact> {
     const result = await db.insert(medicalContacts).values(contact).returning();
     return result[0];
   }
@@ -151,7 +153,7 @@ export class DbStorage implements IStorage {
   }
 
   // Medical Referrals
-  async createMedicalReferral(referral: InsertMedicalReferral): Promise<MedicalReferral> {
+  async createMedicalReferral(referral: WithUserId<InsertMedicalReferral>): Promise<MedicalReferral> {
     const processedReferral = {
       ...referral,
       dateSent: referral.dateSent || new Date(),
@@ -170,7 +172,7 @@ export class DbStorage implements IStorage {
   }
 
   // Follow-Up Tasks
-  async createFollowUpTask(task: InsertFollowUpTask): Promise<FollowUpTask> {
+  async createFollowUpTask(task: WithUserId<InsertFollowUpTask>): Promise<FollowUpTask> {
     const result = await db.insert(followUpTasks).values(task).returning();
     return result[0];
   }
@@ -191,7 +193,7 @@ export class DbStorage implements IStorage {
   }
 
   // Ideas
-  async createIdea(idea: InsertIdea): Promise<Idea> {
+  async createIdea(idea: WithUserId<InsertIdea>): Promise<Idea> {
     const result = await db.insert(ideas).values(idea).returning();
     return result[0];
   }
