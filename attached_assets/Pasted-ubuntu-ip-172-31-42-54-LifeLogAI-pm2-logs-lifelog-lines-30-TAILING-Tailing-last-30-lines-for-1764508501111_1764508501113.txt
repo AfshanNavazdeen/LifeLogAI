@@ -1,0 +1,65 @@
+ubuntu@ip-172-31-42-54:~/LifeLogAI$ pm2 logs lifelog --lines 30
+[TAILING] Tailing last 30 lines for [lifelog] process (change the value with --lines option)
+/home/ubuntu/.pm2/logs/lifelog-error.log last 30 lines:
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+
+/home/ubuntu/.pm2/logs/lifelog-out.log last 30 lines:
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  | 12:58:30 PM [express] serving on port 5000
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  | 1:13:56 PM [express] serving on port 5000
