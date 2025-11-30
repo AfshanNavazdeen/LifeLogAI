@@ -16,11 +16,11 @@ import {
   Upload,
   Sparkles,
   Car,
-  Layers,
   Stethoscope,
   Lightbulb,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import logoImage from "@/assets/logo.png";
 
 const mainMenuItems = [
   {
@@ -69,10 +69,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center h-8 w-8 rounded-md bg-primary text-primary-foreground">
-            <Layers className="h-5 w-5" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img 
+            src={logoImage} 
+            alt="LifeLog AI" 
+            className="h-10 w-10 rounded-md object-cover"
+          />
           <div>
             <h2 className="text-lg font-bold">LifeLog AI</h2>
             <p className="text-xs text-muted-foreground">Personal Dashboard</p>

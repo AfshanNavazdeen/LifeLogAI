@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { Sparkles, Shield, Zap, BarChart3 } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 
 export default function Login() {
   const { login } = useAuth();
@@ -17,11 +18,16 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl grid md:grid-cols-2 gap-8 items-center">
         <div className="space-y-6">
-          <div>
+          <div className="flex flex-col items-center md:items-start">
+            <img 
+              src={logoImage} 
+              alt="LifeLog AI" 
+              className="h-32 w-32 mb-4 rounded-xl"
+            />
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
               LifeLog AI
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground text-center md:text-left">
               Your intelligent personal life-management companion
             </p>
           </div>
