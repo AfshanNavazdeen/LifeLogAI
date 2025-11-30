@@ -1,0 +1,50 @@
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+0|lifelog  | file:///home/ubuntu/LifeLogAI/dist/index.js:207
+0|lifelog  |   throw new Error(
+0|lifelog  |         ^
+0|lifelog  |
+0|lifelog  | Error: DATABASE_URL must be set. Did you forget to provision a database?
+0|lifelog  |     at file:///home/ubuntu/LifeLogAI/dist/index.js:207:9
+0|lifelog  |     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0|lifelog  |     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0|lifelog  |     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
