@@ -42,7 +42,7 @@ export function TimelineEntry({
   tags,
   thumbnail,
 }: TimelineEntryProps) {
-  const config = categoryConfig[category];
+  const config = categoryConfig[category] || categoryConfig.other;
   const Icon = config.icon;
 
   return (
