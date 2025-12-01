@@ -1,0 +1,65 @@
+ubuntu@ip-172-31-42-54:~/LifeLogAI$ pm2 logs lifelog --lines 30
+[TAILING] Tailing last 30 lines for [lifelog] process (change the value with --lines option)
+/home/ubuntu/.pm2/logs/lifelog-error.log last 30 lines:
+0|lifelog  |     _errorEmitted: true,
+0|lifelog  |     _extensions: {},
+0|lifelog  |     _paused: false,
+0|lifelog  |     _protocol: '',
+0|lifelog  |     _readyState: 3,
+0|lifelog  |     _receiver: null,
+0|lifelog  |     _sender: null,
+0|lifelog  |     _socket: null,
+0|lifelog  |     _bufferedAmount: 0,
+0|lifelog  |     _isServer: false,
+0|lifelog  |     _redirects: 0,
+0|lifelog  |     _autoPong: true,
+0|lifelog  |     _url: 'wss://lifelog-db.cd82qw8kyl57.eu-north-1.rds.amazonaws.com/v2',
+0|lifelog  |     _req: null,
+0|lifelog  |     [Symbol(shapeMode)]: false,
+0|lifelog  |     [Symbol(kCapture)]: false
+0|lifelog  |   },
+0|lifelog  |   [Symbol(kType)]: 'error',
+0|lifelog  |   [Symbol(kError)]: Error: connect ETIMEDOUT 172.31.44.147:443
+0|lifelog  |       at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16) {
+0|lifelog  |     errno: -110,
+0|lifelog  |     code: 'ETIMEDOUT',
+0|lifelog  |     syscall: 'connect',
+0|lifelog  |     address: '172.31.44.147',
+0|lifelog  |     port: 443
+0|lifelog  |   },
+0|lifelog  |   [Symbol(kMessage)]: 'connect ETIMEDOUT 172.31.44.147:443'
+0|lifelog  | }
+0|lifelog  |
+0|lifelog  | Node.js v20.19.6
+
+/home/ubuntu/.pm2/logs/lifelog-out.log last 30 lines:
+0|lifelog  | 7:34:51 PM [express] GET /api/auth/user 401 in 2ms :: {"message":"Unauthorized"}
+0|lifelog  | 12:26:46 AM [express] GET /api/.git/config 200 in 1ms
+0|lifelog  | 7:56:41 AM [express] GET /api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 200 in 2ms
+0|lifelog  | 10:07:56 AM [express] GET /api/auth/user 200 in 24ms :: {"id":"google-oauth2|111495762162845390824","…
+0|lifelog  | 10:07:56 AM [express] GET /api/insights 200 in 14ms :: []
+0|lifelog  | 10:07:56 AM [express] GET /api/ideas 200 in 21ms :: []
+0|lifelog  | 10:07:56 AM [express] GET /api/medical/follow-ups 200 in 44ms :: []
+0|lifelog  | 10:07:56 AM [express] GET /api/stats 200 in 56ms :: {"totalSpending":"0.00","fuelSpending":"0.00","en…
+0|lifelog  | 10:07:56 AM [express] GET /api/entries 200 in 51ms :: [{"id":"861acdf9-eb49-4057-8a6f-225d6bc90ca0","…
+0|lifelog  | 1:25:39 PM [express] GET /api/auth/user 200 in 16ms :: {"id":"google-oauth2|111495762162845390824","…
+0|lifelog  | 1:25:39 PM [express] GET /api/stats 200 in 11ms :: {"totalSpending":"0.00","fuelSpending":"0.00","en…
+0|lifelog  | 1:25:39 PM [express] GET /api/entries 304 in 6ms :: [{"id":"861acdf9-eb49-4057-8a6f-225d6bc90ca0","u…
+0|lifelog  | 1:25:39 PM [express] GET /api/medical/follow-ups 304 in 8ms :: []
+0|lifelog  | 1:25:39 PM [express] GET /api/ideas 304 in 8ms :: []
+0|lifelog  | 1:25:39 PM [express] GET /api/insights 304 in 35ms :: []
+0|lifelog  | 1:26:20 PM [express] GET /api/entries 304 in 30ms :: [{"id":"861acdf9-eb49-4057-8a6f-225d6bc90ca0","…
+0|lifelog  | 1:26:20 PM [express] GET /api/stats 200 in 31ms :: {"totalSpending":"0.00","fuelSpending":"0.00","en…
+0|lifelog  | 1:26:20 PM [express] GET /api/medical/follow-ups 304 in 4ms :: []
+0|lifelog  | 1:26:20 PM [express] GET /api/ideas 304 in 7ms :: []
+0|lifelog  | 1:26:20 PM [express] GET /api/insights 304 in 30ms :: []
+0|lifelog  |
+0|lifelog  | > rest-express@1.0.0 start
+0|lifelog  | > NODE_ENV=production node dist/index.js
+0|lifelog  |
+0|lifelog  | 2:09:24 PM [express] serving on port 5000
+0|lifelog  | 2:12:46 PM [express] GET /api/auth/user 200 in 8ms :: {"id":"google-oauth2|111495762162845390824","e…
+0|lifelog  | 2:12:46 PM [express] GET /api/entries 304 in 7ms :: [{"id":"861acdf9-eb49-4057-8a6f-225d6bc90ca0","u…
+0|lifelog  | 2:12:47 PM [express] GET /api/medical/follow-ups 304 in 11ms :: []
+0|lifelog  | 2:12:47 PM [express] GET /api/insights 304 in 35ms :: []
+0|lifelog  | 2:12:47 PM [express] GET /api/ideas 304 in 43ms :: []
