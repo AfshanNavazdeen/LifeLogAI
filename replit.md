@@ -84,6 +84,13 @@ Preferred communication style: Simple, everyday language.
 - JSONB fields for flexible, schema-less metadata
 - Array types for tags and attachments
 
+**Follow-up Task Features:**
+- triggerDate: Date for the reminder (stored as timestamp)
+- triggerTime: Optional time for notification (stored as text HH:mm)
+- notificationsEnabled: Toggle for browser notifications (stored as text "true"/"false")
+- Browser notifications fire when local date/time threshold is reached
+- Timezone handling: Uses local date string comparison (YYYY-MM-DD) to prevent early notifications for users in negative UTC offsets
+
 ### Authentication & Authorization
 
 **Authentication Strategy:**
