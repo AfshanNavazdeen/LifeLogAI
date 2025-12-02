@@ -154,11 +154,13 @@ export const followUpTasks = pgTable("follow_up_tasks", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   referralId: varchar("referral_id").references(() => medicalReferrals.id, { onDelete: "cascade" }),
   triggerDate: timestamp("trigger_date").notNull(),
+  triggerTime: text("trigger_time"), // HH:mm format for the reminder time
   contactId: varchar("contact_id").references(() => medicalContacts.id),
   purpose: text("purpose").notNull(),
   status: text("status").notNull().default("pending"),
   reminderSent: timestamp("reminder_sent"),
   completedAt: timestamp("completed_at"),
+  notificationsEnabled: text("notifications_enabled").default("false"), // "true" or "false" as text for simplicity
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOut, User } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useFollowUpNotifications } from "@/hooks/use-notifications";
 import Dashboard from "@/pages/dashboard";
 import Timeline from "@/pages/timeline";
 import Upload from "@/pages/upload";
@@ -71,6 +72,8 @@ function UserMenu() {
 }
 
 function AuthenticatedApp() {
+  useFollowUpNotifications();
+  
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "4rem",

@@ -326,7 +326,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/medical/follow-ups", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const taskData = insertFollowUpTaskSchema.parse(req.body);
+      // Normalize empty strings to undefined for optional FK fields
+      const body = { ...req.body };
+      if (body.contactId === "") body.contactId = undefined;
+      if (body.referralId === "") body.referralId = undefined;
+      if (body.triggerTime === "") body.triggerTime = undefined;
+      
+      const taskData = insertFollowUpTaskSchema.parse(body);
       const task = await storage.createFollowUpTask({ ...taskData, userId });
       res.json(task);
     } catch (error: any) {
@@ -347,7 +353,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/medical/follow-ups/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const updateData = insertFollowUpTaskSchema.partial().parse(req.body);
+      // Normalize empty strings to undefined for optional FK fields
+      const body = { ...req.body };
+      if (body.contactId === "") body.contactId = undefined;
+      if (body.referralId === "") body.referralId = undefined;
+      if (body.triggerTime === "") body.triggerTime = undefined;
+      
+      const updateData = insertFollowUpTaskSchema.partial().parse(body);
       const task = await storage.updateFollowUpTask(req.params.id, updateData);
       res.json(task);
     } catch (error: any) {

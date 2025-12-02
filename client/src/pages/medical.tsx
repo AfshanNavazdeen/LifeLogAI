@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, User, Calendar, Phone, Mail, FileText, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, User, Calendar, Phone, Mail, FileText, Clock, CheckCircle2, AlertCircle, Bell, BellOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { MedicalContact, MedicalReferral, FollowUpTask } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -188,6 +189,7 @@ function ReferralForm({ contacts, onSuccess }: { contacts: MedicalContact[]; onS
 function FollowUpForm({ contacts, referrals, onSuccess }: { contacts: MedicalContact[]; referrals: MedicalReferral[]; onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   const createFollowUp = useMutation({
     mutationFn: (data: Partial<FollowUpTask>) => apiRequest("/api/medical/follow-ups", { method: "POST", body: JSON.stringify(data) }),
@@ -197,18 +199,41 @@ function FollowUpForm({ contacts, referrals, onSuccess }: { contacts: MedicalCon
       setOpen(false);
       onSuccess();
     },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to save follow-up", variant: "destructive" });
+    },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const contactId = formData.get("contactId") as string;
+    const referralId = formData.get("referralId") as string;
+    const triggerTime = formData.get("triggerTime") as string;
+    
     createFollowUp.mutate({
       purpose: formData.get("purpose") as string,
       triggerDate: new Date(formData.get("triggerDate") as string),
-      contactId: formData.get("contactId") as string || undefined,
-      referralId: formData.get("referralId") as string || undefined,
+      triggerTime: triggerTime && triggerTime.length > 0 ? triggerTime : undefined,
+      contactId: contactId && contactId.length > 0 ? contactId : undefined,
+      referralId: referralId && referralId.length > 0 ? referralId : undefined,
+      notificationsEnabled: notificationsEnabled ? "true" : "false",
       status: "pending",
     });
+  };
+
+  const requestNotificationPermission = async () => {
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setNotificationsEnabled(true);
+        toast({ title: "Notifications enabled", description: "You'll receive reminders for follow-ups" });
+      } else {
+        toast({ title: "Notifications blocked", description: "Please enable notifications in your browser settings", variant: "destructive" });
+      }
+    } else {
+      toast({ title: "Not supported", description: "Your browser doesn't support notifications", variant: "destructive" });
+    }
   };
 
   return (
@@ -228,9 +253,15 @@ function FollowUpForm({ contacts, referrals, onSuccess }: { contacts: MedicalCon
             <Label htmlFor="purpose">Purpose *</Label>
             <Input id="purpose" name="purpose" placeholder="Check referral status, Book appointment..." required data-testid="input-followup-purpose" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="triggerDate">Follow-up Date *</Label>
-            <Input id="triggerDate" name="triggerDate" type="date" required data-testid="input-followup-date" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="triggerDate">Follow-up Date *</Label>
+              <Input id="triggerDate" name="triggerDate" type="date" required data-testid="input-followup-date" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="triggerTime">Time (optional)</Label>
+              <Input id="triggerTime" name="triggerTime" type="time" data-testid="input-followup-time" />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="contactId">Contact (optional)</Label>
@@ -261,6 +292,30 @@ function FollowUpForm({ contacts, referrals, onSuccess }: { contacts: MedicalCon
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30">
+            <div className="flex items-center gap-3">
+              {notificationsEnabled ? (
+                <Bell className="h-5 w-5 text-primary" />
+              ) : (
+                <BellOff className="h-5 w-5 text-muted-foreground" />
+              )}
+              <div>
+                <p className="text-sm font-medium">Enable Reminder</p>
+                <p className="text-xs text-muted-foreground">Get notified on this date</p>
+              </div>
+            </div>
+            <Switch
+              checked={notificationsEnabled}
+              onCheckedChange={(checked) => {
+                if (checked && "Notification" in window && Notification.permission !== "granted") {
+                  requestNotificationPermission();
+                } else {
+                  setNotificationsEnabled(checked);
+                }
+              }}
+              data-testid="switch-notifications"
+            />
           </div>
           <Button type="submit" className="w-full" disabled={createFollowUp.isPending} data-testid="button-save-followup">
             {createFollowUp.isPending ? "Saving..." : "Schedule Follow-up"}
@@ -344,6 +399,7 @@ function FollowUpCard({ task, contacts }: { task: FollowUpTask; contacts: Medica
   const contact = contacts.find((c) => c.id === task.contactId);
   const isOverdue = new Date(task.triggerDate) < new Date() && task.status !== "completed";
   const isCompleted = task.status === "completed";
+  const hasNotifications = task.notificationsEnabled === "true";
 
   const updateFollowUp = useMutation({
     mutationFn: (data: Partial<FollowUpTask>) => apiRequest(`/api/medical/follow-ups/${task.id}`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -365,11 +421,20 @@ function FollowUpCard({ task, contacts }: { task: FollowUpTask; contacts: Medica
               )}
             </div>
             <div>
-              <p className="font-semibold">{task.purpose}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">{task.purpose}</p>
+                {hasNotifications && <Bell className="h-3 w-3 text-primary" />}
+              </div>
               {contact && <p className="text-sm text-muted-foreground">Contact: {contact.name}</p>}
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
                 {format(new Date(task.triggerDate), "d MMM yyyy")}
+                {task.triggerTime && (
+                  <span className="ml-2 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {task.triggerTime}
+                  </span>
+                )}
               </p>
             </div>
           </div>
