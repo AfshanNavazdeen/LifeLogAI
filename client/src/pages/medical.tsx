@@ -1159,6 +1159,8 @@ function FollowUpCard({ task, contacts, familyMembers, conditions }: {
 // ============================================
 // AI TEXT ENTRY COMPONENT
 // ============================================
+type PendingFamilyMember = { name: string; relationship: string };
+
 function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember[]; onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -1166,6 +1168,9 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
   const [parsedItems, setParsedItems] = useState<AiParsedItem[]>([]);
   const [intakeId, setIntakeId] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showFamilyConfirmation, setShowFamilyConfirmation] = useState(false);
+  const [pendingFamilyMembers, setPendingFamilyMembers] = useState<PendingFamilyMember[]>([]);
+  const [createdFamilyMembers, setCreatedFamilyMembers] = useState<Array<{ name: string; id: string }>>([]);
 
   const parseText = useMutation({
     mutationFn: (text: string) => apiRequest("/api/medical/ai/parse", { method: "POST", body: JSON.stringify({ text }) }),
@@ -1187,74 +1192,104 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
     },
   });
 
-  const confirmItems = useMutation({
-    mutationFn: async (selectedItems: AiParsedItem[]) => {
-      const newFamilyNames = new Set<string>();
-      for (const item of selectedItems) {
-        if (item.familyMemberName && item.familyMemberName.toLowerCase() !== "self") {
-          const exists = familyMembers.some(
-            m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
-          );
-          if (!exists) {
-            newFamilyNames.add(item.familyMemberName);
-          }
+  const getNewFamilyMemberNames = () => {
+    const newNames = new Set<string>();
+    for (const item of parsedItems) {
+      if (item.familyMemberName && item.familyMemberName.toLowerCase() !== "self") {
+        const exists = familyMembers.some(
+          m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+        );
+        const alreadyCreated = createdFamilyMembers.some(
+          m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+        );
+        if (!exists && !alreadyCreated) {
+          newNames.add(item.familyMemberName);
         }
       }
-      
-      const familyMemberMap: Record<string, string> = {};
-      const createdFamilyCount = Array.from(newFamilyNames).length;
-      for (const name of Array.from(newFamilyNames)) {
-        try {
-          const newMember = await createFamilyMember.mutateAsync({ 
-            name, 
-            relationship: "other" 
-          });
-          familyMemberMap[name.toLowerCase()] = (newMember as any).id;
-        } catch (e) {
-          console.error(`Failed to create family member ${name}:`, e);
+    }
+    return Array.from(newNames);
+  };
+
+  const handleProceedToConfirm = () => {
+    const newNames = getNewFamilyMemberNames();
+    if (newNames.length > 0) {
+      setPendingFamilyMembers(newNames.map(name => ({ name, relationship: "other" })));
+      setShowFamilyConfirmation(true);
+    } else {
+      proceedWithConfirmation();
+    }
+  };
+
+  const handleFamilyMemberUpdate = (index: number, field: "name" | "relationship", value: string) => {
+    setPendingFamilyMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
+  };
+
+  const handleConfirmFamilyMembers = async () => {
+    const newlyCreated: Array<{ name: string; id: string }> = [];
+    for (const member of pendingFamilyMembers) {
+      try {
+        const created = await createFamilyMember.mutateAsync(member) as any;
+        newlyCreated.push({ name: member.name, id: created.id });
+      } catch (e) {
+        console.error(`Failed to create family member ${member.name}:`, e);
+      }
+    }
+    setCreatedFamilyMembers(prev => [...prev, ...newlyCreated]);
+    setShowFamilyConfirmation(false);
+    proceedWithConfirmation(newlyCreated);
+  };
+
+  const proceedWithConfirmation = (newlyCreatedMembers: Array<{ name: string; id: string }> = []) => {
+    const allCreatedMembers = [...createdFamilyMembers, ...newlyCreatedMembers];
+    const itemsWithFamilyIds = parsedItems.map(item => {
+      if (item.familyMemberName) {
+        const existingMember = familyMembers.find(
+          m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+        );
+        const createdMember = allCreatedMembers.find(
+          m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+        );
+        const familyMemberId = existingMember?.id || createdMember?.id;
+        if (familyMemberId) {
+          return { ...item, data: { ...item.data, familyMemberId } };
         }
       }
-      
-      const itemsWithFamilyIds = selectedItems.map(item => {
-        if (item.familyMemberName) {
-          const existingMember = familyMembers.find(
-            m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
-          );
-          const familyMemberId = existingMember?.id || familyMemberMap[item.familyMemberName.toLowerCase()];
-          if (familyMemberId) {
-            return { ...item, data: { ...item.data, familyMemberId } };
-          }
-        }
-        return item;
-      });
-      
+      return item;
+    });
+    confirmItemsMutation.mutate({ items: itemsWithFamilyIds, familyCount: allCreatedMembers.length });
+  };
+
+  const confirmItemsMutation = useMutation({
+    mutationFn: async ({ items, familyCount }: { items: AiParsedItem[]; familyCount: number }) => {
       const response = await apiRequest(`/api/medical/ai/intakes/${intakeId}/confirm`, { 
         method: "POST", 
-        body: JSON.stringify({ selectedItems: itemsWithFamilyIds }) 
+        body: JSON.stringify({ selectedItems: items }) 
       }) as { success: boolean; created: any };
-      
-      return { ...response, createdFamilyCount };
+      return { response, familyCount };
     },
-    onSuccess: (data: any) => {
+    onSuccess: ({ response, familyCount }: { response: any; familyCount: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/medical/family"] });
       queryClient.invalidateQueries({ queryKey: ["/api/medical/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/medical/referrals"] });
       queryClient.invalidateQueries({ queryKey: ["/api/medical/follow-ups"] });
       queryClient.invalidateQueries({ queryKey: ["/api/medical/conditions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
-      const counts = data.created;
+      const counts = response.created;
       const parts = [];
       if (counts.contacts?.length) parts.push(`${counts.contacts.length} contact(s)`);
       if (counts.referrals?.length) parts.push(`${counts.referrals.length} referral(s)`);
       if (counts.followUps?.length) parts.push(`${counts.followUps.length} follow-up(s)`);
       if (counts.conditions?.length) parts.push(`${counts.conditions.length} condition(s)`);
       if (counts.medications?.length) parts.push(`${counts.medications.length} medication(s)`);
-      if (data.createdFamilyCount > 0) parts.push(`${data.createdFamilyCount} family member(s)`);
+      if (familyCount > 0) parts.push(`${familyCount} family member(s)`);
       toast({ title: "Created", description: parts.join(", ") || "No items created" });
       setOpen(false);
       setShowConfirmation(false);
+      setShowFamilyConfirmation(false);
       setText("");
       setParsedItems([]);
+      setCreatedFamilyMembers([]);
+      setPendingFamilyMembers([]);
       onSuccess();
     },
     onError: () => {
@@ -1269,7 +1304,7 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
   };
 
   const handleConfirm = () => {
-    confirmItems.mutate(parsedItems);
+    handleProceedToConfirm();
   };
 
   const removeItem = (index: number) => {
@@ -1310,7 +1345,67 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
           </DialogDescription>
         </DialogHeader>
         
-        {!showConfirmation ? (
+        {showFamilyConfirmation ? (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <p className="text-sm text-muted-foreground mb-4">
+              The following family members need to be created. Please confirm their details:
+            </p>
+            <ScrollArea className="flex-1 max-h-[300px] pr-4">
+              <div className="space-y-4">
+                {pendingFamilyMembers.map((member, index) => (
+                  <Card key={index} data-testid={`card-pending-family-${index}`}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          value={member.name}
+                          onChange={(e) => handleFamilyMemberUpdate(index, "name", e.target.value)}
+                          data-testid={`input-family-name-${index}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Relationship</Label>
+                        <Select
+                          value={member.relationship}
+                          onValueChange={(value) => handleFamilyMemberUpdate(index, "relationship", value)}
+                        >
+                          <SelectTrigger data-testid={`select-family-relationship-${index}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="self">Self</SelectItem>
+                            <SelectItem value="spouse">Spouse</SelectItem>
+                            <SelectItem value="child">Child</SelectItem>
+                            <SelectItem value="parent">Parent</SelectItem>
+                            <SelectItem value="sibling">Sibling</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+            <DialogFooter className="mt-4 gap-2">
+              <Button variant="outline" onClick={() => setShowFamilyConfirmation(false)} data-testid="button-back-family">
+                Back
+              </Button>
+              <Button 
+                onClick={handleConfirmFamilyMembers} 
+                disabled={createFamilyMember.isPending}
+                className="gap-2"
+                data-testid="button-confirm-family"
+              >
+                {createFamilyMember.isPending ? "Creating..." : (
+                  <>
+                    <Check className="h-4 w-4" /> Create & Continue
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : !showConfirmation ? (
           <div className="space-y-4">
             <Textarea
               value={text}
@@ -1397,11 +1492,11 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
               </Button>
               <Button 
                 onClick={handleConfirm} 
-                disabled={confirmItems.isPending || parsedItems.length === 0}
+                disabled={confirmItemsMutation.isPending || parsedItems.length === 0}
                 className="gap-2"
                 data-testid="button-confirm-items"
               >
-                {confirmItems.isPending ? "Saving..." : (
+                {confirmItemsMutation.isPending ? "Saving..." : (
                   <>
                     <Check className="h-4 w-4" /> Confirm & Save ({parsedItems.length})
                   </>

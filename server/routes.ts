@@ -769,44 +769,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: "system",
             content: `You are an AI assistant that parses medical-related notes into structured data for a personal health tracker. Today's date is ${today}.
 
-Extract the following types of entries from the text:
-1. **contacts** - Healthcare providers, nurses, doctors, clinics (include phone numbers when mentioned)
-2. **referrals** - Medical referrals to specialists, hospitals, imaging, labs
-3. **followUps** - Tasks, reminders, things to follow up on (include any relevant phone numbers in the description)
+EXTRACT ALL of the following types of entries from the text - be thorough and don't miss anything:
+1. **contacts** - Healthcare providers, nurses, doctors, clinics, hospitals. IMPORTANT: Create a contact for ANY organization/location that has a phone number mentioned (e.g., if "RBH" has phone "01234567890", create a contact for RBH with that phone)
+2. **referrals** - Medical referrals to specialists, hospitals, imaging, labs. ALWAYS create a referral when the text mentions referring, sending, or scheduling at another location
+3. **followUps** - Tasks, reminders, things to follow up on. ALWAYS include phone numbers in both purpose and description fields
 4. **conditions** - Health conditions, diagnoses, preventive care (vaccinations, screenings)
 5. **medications** - Prescriptions, medications mentioned
 
 For each extracted item, include:
 - type: one of "contact", "referral", "followUp", "condition", "medication"
-- confidence: 0-1 indicating how confident you are in the extraction
+- confidence: 0-1 indicating how confident you are
 - data: the structured fields for that type
-- familyMemberName: if mentioned, whose health record this belongs to (use the person's actual name like "Nini Azam", "John", etc.)
+- familyMemberName: the actual person's name as mentioned (e.g., "Nini Azam", "John Smith")
 
-IMPORTANT RULES:
-1. For contacts: Always extract the clinic/hospital name and any phone numbers. If the GP/doctor's name is unknown, use "Unknown GP" or similar.
-2. For referrals: Include the "to" field (what the referral is for) and "location" (where), set "status" to "pending".
-3. For followUps: 
-   - Include any phone numbers mentioned in the description (e.g., "Call RBH on 01234567890")
-   - Include the purpose and when to do it
-   - If there are conditional next steps (e.g., "if test is normal, no action; if abnormal, doctor will call"), create separate follow-ups for each outcome
-4. For dates:
-   - Convert relative dates like "tomorrow", "in a week", "in 2 months" to actual YYYY-MM-DD format based on today's date
-   - If a specific date is mentioned, use that date
-5. For familyMemberName: Use the actual person's name as mentioned in the text (e.g., "Nini Azam", "John Smith"), not generic terms.
+CRITICAL RULES - YOU MUST FOLLOW THESE:
+1. **contacts**: 
+   - Create a contact for EVERY organization with a phone number (hospitals, clinics, departments)
+   - Include the "phone" field with the phone number
+   - If the place name is abbreviated (RBH, JRH), use the abbreviation as the name
+   
+2. **referrals**: 
+   - Create a referral for EVERY mention of referral, being referred, appointment booking, test scheduling
+   - Fields: "referredTo" (what/where), "type" (specialist/imaging/lab/general), "status": "pending"
+   
+3. **followUps**:
+   - Create a follow-up for EVERY action item, reminder, or "call to check" mentioned
+   - ALWAYS put phone numbers in both "purpose" and "description" fields
+   - Fields: "purpose" (short action), "description" (detailed with phone), "triggerDate" (YYYY-MM-DD)
+   
+4. **dates**: Convert relative dates (tomorrow, next week, in 2 months) to YYYY-MM-DD using today's date
 
-Return a JSON object with: { items: AiParsedItem[] }
+Return JSON: { items: AiParsedItem[] }
 
-Example output for: "GP Appointment for Nini Azam. GP will refer her for a Blood Test at RBH. Call RBH tomorrow on 01189047900 to check referral."
+EXAMPLE INPUT: "GP Appointment for Nini Azam. GP will refer her for a Blood Test at RBH. Call RBH tomorrow on 01189047900 to check if they received the referral."
+
+EXAMPLE OUTPUT (you MUST produce all 3 items - contact, referral, AND followUp):
 {
   "items": [
     {
       "type": "contact",
-      "confidence": 0.9,
+      "confidence": 0.95,
       "familyMemberName": "Nini Azam",
       "data": {
-        "name": "GP",
-        "role": "GP",
-        "clinic": "Chancellor House"
+        "name": "RBH",
+        "role": "Hospital",
+        "phone": "01189047900"
       }
     },
     {
@@ -814,8 +821,8 @@ Example output for: "GP Appointment for Nini Azam. GP will refer her for a Blood
       "confidence": 0.95,
       "familyMemberName": "Nini Azam",
       "data": {
-        "to": "Blood Test",
-        "location": "RBH",
+        "referredTo": "Blood Test",
+        "type": "lab",
         "status": "pending"
       }
     },
@@ -824,13 +831,15 @@ Example output for: "GP Appointment for Nini Azam. GP will refer her for a Blood
       "confidence": 0.95,
       "familyMemberName": "Nini Azam",
       "data": {
-        "purpose": "Call RBH to check if blood test referral was received",
-        "triggerDate": "2025-12-05",
-        "description": "Contact RBH on 01189047900 (select option 3) to verify they received the blood test referral"
+        "purpose": "Call RBH on 01189047900 to check blood test referral",
+        "triggerDate": "${new Date(Date.now() + 86400000).toISOString().split('T')[0]}",
+        "description": "Call RBH on 01189047900 to verify they received the blood test referral for Nini Azam"
       }
     }
   ]
-}`,
+}
+
+Remember: Be thorough. Extract ALL contacts, referrals, and follow-ups. Every phone number should appear in a contact AND in any related follow-up descriptions.`,
           },
           {
             role: "user",
