@@ -1159,7 +1159,7 @@ function FollowUpCard({ task, contacts, familyMembers, conditions }: {
 // ============================================
 // AI TEXT ENTRY COMPONENT
 // ============================================
-type PendingFamilyMember = { name: string; relationship: string };
+type PendingFamilyMember = { name: string; relationship: string; dateOfBirth?: string };
 
 function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember[]; onSuccess: () => void }) {
   const { toast } = useToast();
@@ -1185,8 +1185,13 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
   });
 
   const createFamilyMember = useMutation({
-    mutationFn: (data: { name: string; relationship: string }) => 
-      apiRequest("/api/medical/family", { method: "POST", body: JSON.stringify(data) }),
+    mutationFn: (data: { name: string; relationship: string; dateOfBirth?: string }) => {
+      const payload: any = { name: data.name, relationship: data.relationship };
+      if (data.dateOfBirth) {
+        payload.dateOfBirth = new Date(data.dateOfBirth).toISOString();
+      }
+      return apiRequest("/api/medical/family", { method: "POST", body: JSON.stringify(payload) });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/medical/family"] });
     },
@@ -1220,7 +1225,7 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
     }
   };
 
-  const handleFamilyMemberUpdate = (index: number, field: "name" | "relationship", value: string) => {
+  const handleFamilyMemberUpdate = (index: number, field: "name" | "relationship" | "dateOfBirth", value: string) => {
     setPendingFamilyMembers(prev => prev.map((m, i) => i === index ? { ...m, [field]: value } : m));
   };
 
@@ -1381,6 +1386,15 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date of Birth (optional)</Label>
+                        <Input
+                          type="date"
+                          value={member.dateOfBirth || ""}
+                          onChange={(e) => handleFamilyMemberUpdate(index, "dateOfBirth", e.target.value)}
+                          data-testid={`input-family-dob-${index}`}
+                        />
                       </div>
                     </CardContent>
                   </Card>

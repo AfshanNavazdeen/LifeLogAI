@@ -900,6 +900,10 @@ Remember: Be thorough. Extract ALL contacts, referrals, and follow-ups. Every ph
       }
       
       const { selectedItems } = req.body; // Array of items to create (may be edited)
+      console.log("=== AI INTAKE CONFIRM ===");
+      console.log("Total items received:", selectedItems?.length || 0);
+      console.log("Item types:", selectedItems?.map((i: any) => i.type) || []);
+      
       const createdRecords: any = {
         contacts: [],
         referrals: [],
@@ -909,10 +913,14 @@ Remember: Be thorough. Extract ALL contacts, referrals, and follow-ups. Every ph
       };
       
       for (const item of selectedItems) {
+        console.log(`Processing item type: ${item.type}`);
+        console.log(`Item data:`, JSON.stringify(item.data, null, 2));
         try {
           switch (item.type) {
             case 'contact':
+              console.log("Creating contact with data:", { ...item.data, userId });
               const contact = await storage.createMedicalContact({ ...item.data, userId });
+              console.log("Contact created:", contact);
               createdRecords.contacts.push(contact);
               break;
             case 'referral':
@@ -922,33 +930,46 @@ Remember: Be thorough. Extract ALL contacts, referrals, and follow-ups. Every ph
                 status: item.data.status || 'pending',
                 userId
               };
+              console.log("Creating referral with data:", referralData);
               const referral = await storage.createMedicalReferral(referralData);
+              console.log("Referral created:", referral);
               createdRecords.referrals.push(referral);
               break;
             case 'followUp':
-              const task = await storage.createFollowUpTask({ 
+              const followUpData = { 
                 ...item.data, 
                 purpose: item.data.purpose || 'Follow up',
                 triggerDate: new Date(item.data.triggerDate),
                 userId 
-              });
+              };
+              console.log("Creating followUp with data:", followUpData);
+              const task = await storage.createFollowUpTask(followUpData);
+              console.log("FollowUp created:", task);
               createdRecords.followUps.push(task);
               break;
             case 'condition':
-              const condition = await storage.createCondition({ 
+              const conditionData = { 
                 ...item.data, 
                 type: item.data.type || 'episodic',
                 userId 
-              });
+              };
+              console.log("Creating condition with data:", conditionData);
+              const condition = await storage.createCondition(conditionData);
+              console.log("Condition created:", condition);
               createdRecords.conditions.push(condition);
               break;
             case 'medication':
+              console.log("Creating medication with data:", { ...item.data, userId });
               const medication = await storage.createMedication({ ...item.data, userId });
+              console.log("Medication created:", medication);
               createdRecords.medications.push(medication);
               break;
+            default:
+              console.log(`Unknown item type: ${item.type}`);
           }
-        } catch (itemError) {
-          console.error(`Failed to create ${item.type}:`, itemError);
+        } catch (itemError: any) {
+          console.error(`Failed to create ${item.type}:`, itemError.message);
+          console.error("Full error:", itemError);
         }
       }
       
