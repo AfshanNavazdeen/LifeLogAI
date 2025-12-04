@@ -1,0 +1,49 @@
+Let's focus on Medical First. 
+
+ 
+
+A Main Functionality of the App should be to take the text from the Quick Text Entry and run it through the LLM to decide if the entry is a Referral, contact information or follow-up and add the medical tracking entry or entries automatically.  
+
+ 
+
+Medical Category should be further categorized by the Family Member. The user can either create the family members at a profile level or add it at the time of creating an entry. 
+
+ 
+For Example, the use inputs the below:  
+
+“Cath Hagan A nurse from the first-fit clinic called on 25th November 2025 at 11:00AM. Cath Hagan phone number – 07385384089.  Cath will request to send a reminder mail for the EEG referral to John Radcliff Hospital. Remind me to call John Radcliff Hospital in a week to check if they have received the referral. If not, I need to contact Cath again 
+
+We should expect a call from Doctor Brooker from a pediatric clinic in 2 months.” 
+The app should know,  
+
+A call happened on the 25th November 2025 at 11:00AM with the nurse named Cath Hagan. 
+
+To automatically create a contact entry. 
+
+To automatically create a follow-up task entry, to remind me to call the John Radcliff hospital 7 days after the call to see if they received the referral. App should take my input before the follow-up task is marked as complete. Wait for the user's response on the outcome of the call with John Radcliff hospital. 
+
+This may result in creating another follow-up task like, 
+
+Create a Reminder to follow-up with Cath Hagan, if John Radcliff Hospital Has not received the referral. 
+
+If the referral is received, a follow-up until the EEG appointment is scheduled. 
+
+To create a follow-up for the pediatric clinic appointment in two months. 
+
+ 
+
+The LLM would decide that this is a medical category and this goes to one or more entries (ie: Contact, referral and follow-up) and the data for the entry form. The user will finally confirm and give the OK to go ahead with the planned tasks. The planned tasks/entries with the data will be shown to the user in a pop-up to save it as-is or make some changes. If the user exits the app before confirming, the entries should show up as pending for user to act until it is saved.  
+
+Basically, the app will act as a personal assistant in keeping track and managing medical aspects of me and my family members. 
+ 
+ 
+
+Stage 2: 
+
+Sharing the App with my wife to be a co-user as she has too has the responsibility of our children. Maybe, to give away the data and user rights to children when they reach 18 years. Or provide rights of a special child with disabilities to his sibling with abilities. 
+
+ 
+
+ 
+
+ 
