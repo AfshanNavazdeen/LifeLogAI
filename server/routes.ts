@@ -1,11 +1,15 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEntrySchema, insertCarDataSchema, insertInsightSchema } from "@shared/schema";
+import { 
+  insertEntrySchema, insertCarDataSchema, insertInsightSchema,
+  insertMedicalContactSchema, insertMedicalReferralSchema, insertFollowUpTaskSchema, insertIdeaSchema,
+  insertFamilyMemberSchema, insertConditionSchema, insertMedicationSchema, insertAiIntakeSchema,
+  type AiParsedItem
+} from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./auth0";
 import OpenAI from "openai";
 import { z } from "zod";
-import { insertMedicalContactSchema, insertMedicalReferralSchema, insertFollowUpTaskSchema, insertIdeaSchema } from "@shared/schema";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -268,11 +272,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Medical Contacts API
+  // ============================================
+  // FAMILY MEMBERS API
+  // ============================================
+  app.post("/api/medical/family", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const memberData = insertFamilyMemberSchema.parse(req.body);
+      const member = await storage.createFamilyMember({ ...memberData, userId });
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/family", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const members = await storage.getFamilyMembers(userId);
+      res.json(members);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/family/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const member = await storage.getFamilyMember(req.params.id);
+      if (!member || member.userId !== userId) {
+        return res.status(404).json({ error: "Family member not found" });
+      }
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/family/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getFamilyMember(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Family member not found" });
+      }
+      const updateData = insertFamilyMemberSchema.partial().parse(req.body);
+      const member = await storage.updateFamilyMember(req.params.id, updateData);
+      res.json(member);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/family/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getFamilyMember(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Family member not found" });
+      }
+      await storage.deleteFamilyMember(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // CONDITIONS API
+  // ============================================
+  app.post("/api/medical/conditions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      const conditionData = insertConditionSchema.parse(body);
+      const condition = await storage.createCondition({ ...conditionData, userId });
+      res.json(condition);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/conditions", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { familyMemberId, type, status } = req.query;
+      const conditions = await storage.getConditions(userId, {
+        familyMemberId: familyMemberId as string,
+        type: type as string,
+        status: status as string,
+      });
+      res.json(conditions);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/conditions/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const condition = await storage.getCondition(req.params.id);
+      if (!condition || condition.userId !== userId) {
+        return res.status(404).json({ error: "Condition not found" });
+      }
+      res.json(condition);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/conditions/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getCondition(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Condition not found" });
+      }
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      const updateData = insertConditionSchema.partial().parse(body);
+      const condition = await storage.updateCondition(req.params.id, updateData);
+      res.json(condition);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/conditions/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getCondition(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Condition not found" });
+      }
+      await storage.deleteCondition(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // MEDICATIONS API
+  // ============================================
+  app.post("/api/medical/medications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
+      if (body.prescribedBy === "") body.prescribedBy = undefined;
+      const medicationData = insertMedicationSchema.parse(body);
+      const medication = await storage.createMedication({ ...medicationData, userId });
+      res.json(medication);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/medications", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { familyMemberId, conditionId, status } = req.query;
+      const medications = await storage.getMedications(userId, {
+        familyMemberId: familyMemberId as string,
+        conditionId: conditionId as string,
+        status: status as string,
+      });
+      res.json(medications);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/medications/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const medication = await storage.getMedication(req.params.id);
+      if (!medication || medication.userId !== userId) {
+        return res.status(404).json({ error: "Medication not found" });
+      }
+      res.json(medication);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/medications/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedication(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Medication not found" });
+      }
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
+      if (body.prescribedBy === "") body.prescribedBy = undefined;
+      const updateData = insertMedicationSchema.partial().parse(body);
+      const medication = await storage.updateMedication(req.params.id, updateData);
+      res.json(medication);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/medications/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedication(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Medication not found" });
+      }
+      await storage.deleteMedication(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // MEDICAL CONTACTS API
+  // ============================================
   app.post("/api/medical/contacts", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const contactData = insertMedicalContactSchema.parse(req.body);
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      const contactData = insertMedicalContactSchema.parse(body);
       const contact = await storage.createMedicalContact({ ...contactData, userId });
       res.json(contact);
     } catch (error: any) {
@@ -283,18 +511,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/medical/contacts", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const contacts = await storage.getMedicalContacts(userId);
+      const { familyMemberId } = req.query;
+      const contacts = await storage.getMedicalContacts(userId, {
+        familyMemberId: familyMemberId as string,
+      });
       res.json(contacts);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   });
 
-  // Medical Referrals API
+  app.get("/api/medical/contacts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const contact = await storage.getMedicalContact(req.params.id);
+      if (!contact || contact.userId !== userId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      res.json(contact);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/medical/contacts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedicalContact(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      const updateData = insertMedicalContactSchema.partial().parse(body);
+      const contact = await storage.updateMedicalContact(req.params.id, updateData);
+      res.json(contact);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/contacts/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedicalContact(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Contact not found" });
+      }
+      await storage.deleteMedicalContact(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // MEDICAL REFERRALS API
+  // ============================================
   app.post("/api/medical/referrals", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const referralData = insertMedicalReferralSchema.parse(req.body);
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
+      if (body.senderContactId === "") body.senderContactId = undefined;
+      if (body.referredToContactId === "") body.referredToContactId = undefined;
+      const referralData = insertMedicalReferralSchema.parse(body);
       const referral = await storage.createMedicalReferral({ ...referralData, userId });
       res.json(referral);
     } catch (error: any) {
@@ -305,8 +587,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/medical/referrals", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const referrals = await storage.getMedicalReferrals(userId);
+      const { familyMemberId, conditionId, status } = req.query;
+      const referrals = await storage.getMedicalReferrals(userId, {
+        familyMemberId: familyMemberId as string,
+        conditionId: conditionId as string,
+        status: status as string,
+      });
       res.json(referrals);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/referrals/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const referral = await storage.getMedicalReferral(req.params.id);
+      if (!referral || referral.userId !== userId) {
+        return res.status(404).json({ error: "Referral not found" });
+      }
+      res.json(referral);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -314,7 +614,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/medical/referrals/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const updateData = insertMedicalReferralSchema.partial().parse(req.body);
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedicalReferral(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Referral not found" });
+      }
+      const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
+      if (body.senderContactId === "") body.senderContactId = undefined;
+      if (body.referredToContactId === "") body.referredToContactId = undefined;
+      const updateData = insertMedicalReferralSchema.partial().parse(body);
       const referral = await storage.updateMedicalReferral(req.params.id, updateData);
       res.json(referral);
     } catch (error: any) {
@@ -322,15 +632,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Follow-Up Tasks API
+  app.delete("/api/medical/referrals/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getMedicalReferral(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Referral not found" });
+      }
+      await storage.deleteMedicalReferral(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // FOLLOW-UP TASKS API
+  // ============================================
   app.post("/api/medical/follow-ups", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      // Normalize empty strings to undefined for optional FK fields
       const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
       if (body.contactId === "") body.contactId = undefined;
       if (body.referralId === "") body.referralId = undefined;
       if (body.triggerTime === "") body.triggerTime = undefined;
+      if (body.parentTaskId === "") body.parentTaskId = undefined;
       
       const taskData = insertFollowUpTaskSchema.parse(body);
       const task = await storage.createFollowUpTask({ ...taskData, userId });
@@ -343,9 +671,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/medical/follow-ups", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const daysAhead = req.query.daysAhead ? parseInt(req.query.daysAhead) : 30;
-      const tasks = await storage.getFollowUpTasks(userId, daysAhead);
+      const { familyMemberId, conditionId, status, daysAhead } = req.query;
+      const tasks = await storage.getFollowUpTasks(userId, {
+        familyMemberId: familyMemberId as string,
+        conditionId: conditionId as string,
+        status: status as string,
+        daysAhead: daysAhead ? parseInt(daysAhead as string) : undefined,
+      });
       res.json(tasks);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/follow-ups/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const task = await storage.getFollowUpTask(req.params.id);
+      if (!task || task.userId !== userId) {
+        return res.status(404).json({ error: "Follow-up task not found" });
+      }
+      res.json(task);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -353,15 +699,263 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/medical/follow-ups/:id", isAuthenticated, async (req: any, res) => {
     try {
-      // Normalize empty strings to undefined for optional FK fields
+      const userId = req.user.claims.sub;
+      const existing = await storage.getFollowUpTask(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Follow-up task not found" });
+      }
       const body = { ...req.body };
+      if (body.familyMemberId === "") body.familyMemberId = undefined;
+      if (body.conditionId === "") body.conditionId = undefined;
       if (body.contactId === "") body.contactId = undefined;
       if (body.referralId === "") body.referralId = undefined;
       if (body.triggerTime === "") body.triggerTime = undefined;
+      if (body.parentTaskId === "") body.parentTaskId = undefined;
       
       const updateData = insertFollowUpTaskSchema.partial().parse(body);
       const task = await storage.updateFollowUpTask(req.params.id, updateData);
       res.json(task);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/follow-ups/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getFollowUpTask(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Follow-up task not found" });
+      }
+      await storage.deleteFollowUpTask(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/follow-ups/:id/children", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parent = await storage.getFollowUpTask(req.params.id);
+      if (!parent || parent.userId !== userId) {
+        return res.status(404).json({ error: "Follow-up task not found" });
+      }
+      const children = await storage.getChildTasks(req.params.id);
+      res.json(children);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // ============================================
+  // AI INTAKE API - Parse medical text
+  // ============================================
+  const aiParseSchema = z.object({
+    text: z.string().min(1).max(10000),
+  });
+
+  app.post("/api/medical/ai/parse", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validated = aiParseSchema.parse(req.body);
+      
+      const today = new Date().toISOString().split('T')[0];
+      
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an AI assistant that parses medical-related notes into structured data for a personal health tracker. Today's date is ${today}.
+
+Extract the following types of entries from the text:
+1. **contacts** - Healthcare providers, nurses, doctors, clinics
+2. **referrals** - Medical referrals to specialists, hospitals, imaging, labs
+3. **followUps** - Tasks, reminders, things to follow up on
+4. **conditions** - Health conditions, diagnoses, preventive care (vaccinations, screenings)
+5. **medications** - Prescriptions, medications mentioned
+
+For each extracted item, include:
+- type: one of "contact", "referral", "followUp", "condition", "medication"
+- confidence: 0-1 indicating how confident you are in the extraction
+- data: the structured fields for that type
+- familyMemberName: if mentioned, whose health record this belongs to (e.g., "self", "John", "my son")
+
+For dates:
+- Convert relative dates like "in a week", "in 2 months" to actual YYYY-MM-DD format based on today's date
+- If a specific date is mentioned, use that date
+- For follow-ups, include both triggerDate and purpose
+
+Return a JSON object with: { items: AiParsedItem[] }
+
+Example output:
+{
+  "items": [
+    {
+      "type": "contact",
+      "confidence": 0.95,
+      "data": {
+        "name": "Cath Hagan",
+        "role": "Nurse",
+        "clinic": "First-Fit Clinic",
+        "phone": "07385384089"
+      }
+    },
+    {
+      "type": "followUp",
+      "confidence": 0.9,
+      "data": {
+        "purpose": "Call John Radcliff Hospital to check if EEG referral was received",
+        "triggerDate": "2025-12-02",
+        "description": "Follow up on EEG referral status"
+      }
+    }
+  ]
+}`,
+          },
+          {
+            role: "user",
+            content: validated.text,
+          },
+        ],
+        response_format: { type: "json_object" },
+      });
+      
+      const result = JSON.parse(completion.choices[0].message.content || '{"items":[]}');
+      
+      // Save as pending intake
+      const intake = await storage.createAiIntake({
+        userId,
+        sourceText: validated.text,
+        parsedItems: result.items || [],
+        status: "pending",
+      });
+      
+      res.json({ intake, items: result.items || [] });
+    } catch (error: any) {
+      console.error("AI parse error:", error);
+      res.status(500).json({ error: "Failed to parse medical text" });
+    }
+  });
+
+  app.get("/api/medical/ai/intakes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { status } = req.query;
+      const intakes = await storage.getAiIntakes(userId, status as string);
+      res.json(intakes);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/medical/ai/intakes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const intake = await storage.getAiIntake(req.params.id);
+      if (!intake || intake.userId !== userId) {
+        return res.status(404).json({ error: "Intake not found" });
+      }
+      res.json(intake);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Confirm AI intake - create actual records
+  app.post("/api/medical/ai/intakes/:id/confirm", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const intake = await storage.getAiIntake(req.params.id);
+      if (!intake || intake.userId !== userId) {
+        return res.status(404).json({ error: "Intake not found" });
+      }
+      
+      const { selectedItems } = req.body; // Array of items to create (may be edited)
+      const createdRecords: any = {
+        contacts: [],
+        referrals: [],
+        followUps: [],
+        conditions: [],
+        medications: [],
+      };
+      
+      for (const item of selectedItems) {
+        try {
+          switch (item.type) {
+            case 'contact':
+              const contact = await storage.createMedicalContact({ ...item.data, userId });
+              createdRecords.contacts.push(contact);
+              break;
+            case 'referral':
+              const referral = await storage.createMedicalReferral({ ...item.data, type: item.data.type || 'general', userId });
+              createdRecords.referrals.push(referral);
+              break;
+            case 'followUp':
+              const task = await storage.createFollowUpTask({ 
+                ...item.data, 
+                purpose: item.data.purpose || 'Follow up',
+                triggerDate: new Date(item.data.triggerDate),
+                userId 
+              });
+              createdRecords.followUps.push(task);
+              break;
+            case 'condition':
+              const condition = await storage.createCondition({ 
+                ...item.data, 
+                type: item.data.type || 'episodic',
+                userId 
+              });
+              createdRecords.conditions.push(condition);
+              break;
+            case 'medication':
+              const medication = await storage.createMedication({ ...item.data, userId });
+              createdRecords.medications.push(medication);
+              break;
+          }
+        } catch (itemError) {
+          console.error(`Failed to create ${item.type}:`, itemError);
+        }
+      }
+      
+      // Update intake status
+      await storage.updateAiIntake(req.params.id, { 
+        status: "confirmed",
+        confirmedAt: new Date(),
+      });
+      
+      res.json({ success: true, created: createdRecords });
+    } catch (error: any) {
+      console.error("Confirm intake error:", error);
+      res.status(500).json({ error: "Failed to confirm intake" });
+    }
+  });
+
+  app.patch("/api/medical/ai/intakes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getAiIntake(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Intake not found" });
+      }
+      const updateData = insertAiIntakeSchema.partial().parse(req.body);
+      const intake = await storage.updateAiIntake(req.params.id, updateData);
+      res.json(intake);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/medical/ai/intakes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const existing = await storage.getAiIntake(req.params.id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Intake not found" });
+      }
+      await storage.deleteAiIntake(req.params.id);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -392,6 +986,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/ideas/:id", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
+      const ideas = await storage.getIdeas(userId);
+      const existingIdea = ideas.find(i => i.id === req.params.id);
+      if (!existingIdea) {
+        return res.status(404).json({ error: "Idea not found" });
+      }
       const updateData = insertIdeaSchema.partial().parse(req.body);
       const idea = await storage.updateIdea(req.params.id, updateData);
       res.json(idea);
