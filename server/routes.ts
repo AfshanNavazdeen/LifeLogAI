@@ -770,9 +770,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: `You are an AI assistant that parses medical-related notes into structured data for a personal health tracker. Today's date is ${today}.
 
 Extract the following types of entries from the text:
-1. **contacts** - Healthcare providers, nurses, doctors, clinics
+1. **contacts** - Healthcare providers, nurses, doctors, clinics (include phone numbers when mentioned)
 2. **referrals** - Medical referrals to specialists, hospitals, imaging, labs
-3. **followUps** - Tasks, reminders, things to follow up on
+3. **followUps** - Tasks, reminders, things to follow up on (include any relevant phone numbers in the description)
 4. **conditions** - Health conditions, diagnoses, preventive care (vaccinations, screenings)
 5. **medications** - Prescriptions, medications mentioned
 
@@ -780,35 +780,53 @@ For each extracted item, include:
 - type: one of "contact", "referral", "followUp", "condition", "medication"
 - confidence: 0-1 indicating how confident you are in the extraction
 - data: the structured fields for that type
-- familyMemberName: if mentioned, whose health record this belongs to (e.g., "self", "John", "my son")
+- familyMemberName: if mentioned, whose health record this belongs to (use the person's actual name like "Nini Azam", "John", etc.)
 
-For dates:
-- Convert relative dates like "in a week", "in 2 months" to actual YYYY-MM-DD format based on today's date
-- If a specific date is mentioned, use that date
-- For follow-ups, include both triggerDate and purpose
+IMPORTANT RULES:
+1. For contacts: Always extract the clinic/hospital name and any phone numbers. If the GP/doctor's name is unknown, use "Unknown GP" or similar.
+2. For referrals: Include the "to" field (what the referral is for) and "location" (where), set "status" to "pending".
+3. For followUps: 
+   - Include any phone numbers mentioned in the description (e.g., "Call RBH on 01234567890")
+   - Include the purpose and when to do it
+   - If there are conditional next steps (e.g., "if test is normal, no action; if abnormal, doctor will call"), create separate follow-ups for each outcome
+4. For dates:
+   - Convert relative dates like "tomorrow", "in a week", "in 2 months" to actual YYYY-MM-DD format based on today's date
+   - If a specific date is mentioned, use that date
+5. For familyMemberName: Use the actual person's name as mentioned in the text (e.g., "Nini Azam", "John Smith"), not generic terms.
 
 Return a JSON object with: { items: AiParsedItem[] }
 
-Example output:
+Example output for: "GP Appointment for Nini Azam. GP will refer her for a Blood Test at RBH. Call RBH tomorrow on 01189047900 to check referral."
 {
   "items": [
     {
       "type": "contact",
-      "confidence": 0.95,
+      "confidence": 0.9,
+      "familyMemberName": "Nini Azam",
       "data": {
-        "name": "Cath Hagan",
-        "role": "Nurse",
-        "clinic": "First-Fit Clinic",
-        "phone": "07385384089"
+        "name": "GP",
+        "role": "GP",
+        "clinic": "Chancellor House"
+      }
+    },
+    {
+      "type": "referral",
+      "confidence": 0.95,
+      "familyMemberName": "Nini Azam",
+      "data": {
+        "to": "Blood Test",
+        "location": "RBH",
+        "status": "pending"
       }
     },
     {
       "type": "followUp",
-      "confidence": 0.9,
+      "confidence": 0.95,
+      "familyMemberName": "Nini Azam",
       "data": {
-        "purpose": "Call John Radcliff Hospital to check if EEG referral was received",
-        "triggerDate": "2025-12-02",
-        "description": "Follow up on EEG referral status"
+        "purpose": "Call RBH to check if blood test referral was received",
+        "triggerDate": "2025-12-05",
+        "description": "Contact RBH on 01189047900 (select option 3) to verify they received the blood test referral"
       }
     }
   ]
@@ -889,7 +907,13 @@ Example output:
               createdRecords.contacts.push(contact);
               break;
             case 'referral':
-              const referral = await storage.createMedicalReferral({ ...item.data, type: item.data.type || 'general', userId });
+              const referralData = {
+                ...item.data,
+                type: item.data.type || 'general',
+                status: item.data.status || 'pending',
+                userId
+              };
+              const referral = await storage.createMedicalReferral(referralData);
               createdRecords.referrals.push(referral);
               break;
             case 'followUp':

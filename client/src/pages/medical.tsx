@@ -1179,14 +1179,69 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
     },
   });
 
+  const createFamilyMember = useMutation({
+    mutationFn: (data: { name: string; relationship: string }) => 
+      apiRequest("/api/medical/family", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/family"] });
+    },
+  });
+
   const confirmItems = useMutation({
-    mutationFn: (selectedItems: AiParsedItem[]) => 
-      apiRequest(`/api/medical/ai/intakes/${intakeId}/confirm`, { 
+    mutationFn: async (selectedItems: AiParsedItem[]) => {
+      const newFamilyNames = new Set<string>();
+      for (const item of selectedItems) {
+        if (item.familyMemberName && item.familyMemberName.toLowerCase() !== "self") {
+          const exists = familyMembers.some(
+            m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+          );
+          if (!exists) {
+            newFamilyNames.add(item.familyMemberName);
+          }
+        }
+      }
+      
+      const familyMemberMap: Record<string, string> = {};
+      const createdFamilyCount = Array.from(newFamilyNames).length;
+      for (const name of Array.from(newFamilyNames)) {
+        try {
+          const newMember = await createFamilyMember.mutateAsync({ 
+            name, 
+            relationship: "other" 
+          });
+          familyMemberMap[name.toLowerCase()] = (newMember as any).id;
+        } catch (e) {
+          console.error(`Failed to create family member ${name}:`, e);
+        }
+      }
+      
+      const itemsWithFamilyIds = selectedItems.map(item => {
+        if (item.familyMemberName) {
+          const existingMember = familyMembers.find(
+            m => m.name.toLowerCase() === item.familyMemberName!.toLowerCase()
+          );
+          const familyMemberId = existingMember?.id || familyMemberMap[item.familyMemberName.toLowerCase()];
+          if (familyMemberId) {
+            return { ...item, data: { ...item.data, familyMemberId } };
+          }
+        }
+        return item;
+      });
+      
+      const response = await apiRequest(`/api/medical/ai/intakes/${intakeId}/confirm`, { 
         method: "POST", 
-        body: JSON.stringify({ selectedItems }) 
-      }),
+        body: JSON.stringify({ selectedItems: itemsWithFamilyIds }) 
+      }) as { success: boolean; created: any };
+      
+      return { ...response, createdFamilyCount };
+    },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/medical"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/family"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/referrals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/conditions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medical/medications"] });
       const counts = data.created;
       const parts = [];
       if (counts.contacts?.length) parts.push(`${counts.contacts.length} contact(s)`);
@@ -1194,6 +1249,7 @@ function AiTextEntry({ familyMembers, onSuccess }: { familyMembers: FamilyMember
       if (counts.followUps?.length) parts.push(`${counts.followUps.length} follow-up(s)`);
       if (counts.conditions?.length) parts.push(`${counts.conditions.length} condition(s)`);
       if (counts.medications?.length) parts.push(`${counts.medications.length} medication(s)`);
+      if (data.createdFamilyCount > 0) parts.push(`${data.createdFamilyCount} family member(s)`);
       toast({ title: "Created", description: parts.join(", ") || "No items created" });
       setOpen(false);
       setShowConfirmation(false);
