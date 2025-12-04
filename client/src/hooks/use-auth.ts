@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getQueryFn } from "@/lib/queryClient";
+import { getQueryFn, queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 export function useAuth() {
@@ -15,6 +15,7 @@ export function useAuth() {
   };
 
   const logout = () => {
+    queryClient.clear();
     window.location.href = "/api/logout";
   };
 
