@@ -2,6 +2,16 @@ import { auth, requiresAuth } from "express-openid-connect";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
 
+const DEV_STATIC_USER = process.env.DEV_STATIC_USER === "true";
+const STATIC_USER_ID = "dev-static-user-001";
+const STATIC_USER = {
+  id: STATIC_USER_ID,
+  email: "dev@lifelog.local",
+  firstName: "Dev",
+  lastName: "User",
+  profileImageUrl: "",
+};
+
 function getIssuerBaseURL(): string {
   const issuer = process.env.AUTH0_ISSUER_BASE_URL || "";
   if (issuer.startsWith("https://")) {
@@ -57,28 +67,62 @@ async function upsertUser(claims: any) {
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   
-  app.use(auth(config));
-  
-  app.use(async (req: any, res, next) => {
-    if (req.oidc?.isAuthenticated() && req.oidc?.user) {
-      await upsertUser(req.oidc.user);
-    }
-    next();
-  });
-  
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.oidc.user.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  if (DEV_STATIC_USER) {
+    console.log("⚠️  DEV MODE: Using static user authentication (Auth0 bypassed)");
+    await storage.upsertUser(STATIC_USER);
+    
+    app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+      try {
+        const user = await storage.getUser(STATIC_USER_ID);
+        res.json(user);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ message: "Failed to fetch user" });
+      }
+    });
+    
+    app.get("/api/login", (req, res) => {
+      res.redirect("/");
+    });
+    
+    app.get("/api/logout", (req, res) => {
+      res.redirect("/");
+    });
+  } else {
+    app.use(auth(config));
+    
+    app.use(async (req: any, res, next) => {
+      if (req.oidc?.isAuthenticated() && req.oidc?.user) {
+        await upsertUser(req.oidc.user);
+      }
+      next();
+    });
+    
+    app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+      try {
+        const userId = req.oidc.user.sub;
+        const user = await storage.getUser(userId);
+        res.json(user);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ message: "Failed to fetch user" });
+      }
+    });
+  }
 }
 
 export const isAuthenticated: RequestHandler = (req: any, res, next) => {
+  if (DEV_STATIC_USER) {
+    req.user = {
+      claims: {
+        sub: STATIC_USER_ID,
+        email: STATIC_USER.email,
+        name: `${STATIC_USER.firstName} ${STATIC_USER.lastName}`,
+      }
+    };
+    return next();
+  }
+  
   if (req.oidc?.isAuthenticated()) {
     req.user = {
       claims: {

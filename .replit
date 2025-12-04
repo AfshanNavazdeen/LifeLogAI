@@ -34,6 +34,10 @@ externalPort = 3000
 localPort = 42725
 externalPort = 3003
 
+[[ports]]
+localPort = 44025
+externalPort = 5000
+
 [env]
 PORT = "5000"
 
@@ -60,3 +64,8 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.0", "javascript_openai:1.0.0"]
+
+[userenv]
+
+[userenv.development]
+DEV_STATIC_USER = "true"
