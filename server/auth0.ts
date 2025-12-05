@@ -33,11 +33,14 @@ function getBaseURL(): string {
   return "http://localhost:5000";
 }
 
+const baseURL = getBaseURL();
+
 const config = {
   authRequired: false,
   auth0Logout: true,
+  idpLogout: true,
   secret: process.env.SESSION_SECRET || "a-long-random-secret-for-sessions",
-  baseURL: getBaseURL(),
+  baseURL: baseURL,
   clientID: process.env.AUTH0_CLIENT_ID,
   issuerBaseURL: getIssuerBaseURL(),
   clientSecret: process.env.AUTH0_CLIENT_SECRET,
@@ -47,8 +50,9 @@ const config = {
   },
   routes: {
     login: "/api/login",
-    logout: "/api/logout",
+    logout: false as const,
     callback: "/api/callback",
+    postLogoutRedirect: "/",
   },
 };
 
@@ -107,6 +111,13 @@ export async function setupAuth(app: Express) {
         console.error("Error fetching user:", error);
         res.status(500).json({ message: "Failed to fetch user" });
       }
+    });
+    
+    app.get("/api/logout", (req: any, res) => {
+      console.log("Logout requested, redirecting to Auth0 logout with returnTo:", baseURL);
+      res.oidc.logout({
+        returnTo: baseURL,
+      });
     });
   }
 }
